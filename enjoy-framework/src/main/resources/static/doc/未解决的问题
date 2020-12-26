@@ -1,0 +1,1 @@
+1、TWO类为什么在execute方法加上Transactional就能开启事务，并没有交给容器管理呀，难道是因为quartz里边处理了

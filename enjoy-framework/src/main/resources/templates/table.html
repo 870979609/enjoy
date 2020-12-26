@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Bootstrap 实例 - 悬停表格</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.css}" />
+    <script type="text/javascript" th:src="@{/js/jquery.min.js}"></script>
+    <script type="text/javascript" th:src="@{/js/bootstrap.js}"></script>
+</head>
+<body>
+
+<table class="table table-hover">
+    <caption>悬停表格布局</caption>
+    <thead>
+    <tr>
+        <th>名称ddd</th>
+        <th>城市</th>
+        <th>邮编</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td th:text="${hello}"></td>
+        <td>Bangalore</td>
+        <td>560001</td>
+    </tr>
+    <tr>
+        <td>Sachin</td>
+        <td>Mumbai</td>
+        <td>400003</td>
+    </tr>
+    <tr>
+        <td>Uma</td>
+        <td>Pune</td>
+        <td>411027</td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

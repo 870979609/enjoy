@@ -1,0 +1,2 @@
+org.springframework.context.ApplicationListener=com.lyq.framework.spring.listener.XYStartingPlugInListener
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.lyq.framework.spring.bean.mq.RocketMQ.RocketMQConfiguation

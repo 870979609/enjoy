@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lyq.enjoy.blog.mapper.ArticleMapper">
+    <resultMap id="ArticleBaseMap" type="com.lyq.enjoy.blog.entity.Article">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="title" jdbcType="VARCHAR" property="title"/>
+        <result column="user_id" jdbcType="VARCHAR" property="userId"/>
+        <result column="summary" jdbcType="VARCHAR" property="summary"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="categorys" typeHandler="StringToListTypeHandler" property="categorys"/>
+        <result column="categorys_name" jdbcType="VARCHAR" property="categorysName"/>
+        <result column="tags" typeHandler="StringToListTypeHandler" property="tags"/>
+        <result column="tags_name" jdbcType="VARCHAR" property="tagsName"/>
+        <result column="origin" jdbcType="VARCHAR" property="origin"/>
+        <result column="visibility" jdbcType="VARCHAR" property="visibility"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="is_top" jdbcType="BIT" property="isTop"/>
+        <result column="praise_num" jdbcType="INTEGER" property="praiseNum"/>
+        <result column="collection_num" jdbcType="INTEGER" property="collectionNum"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="UserBaseMap" type="com.lyq.enjoy.blog.entity.User">
+        <result column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="loginname" jdbcType="VARCHAR" property="loginname"/>
+        <result column="nickname" jdbcType="VARCHAR" property="nickname"/>
+        <result column="realname" jdbcType="VARCHAR" property="realname"/>
+        <result column="gender" jdbcType="CHAR" property="gender"/>
+        <result column="introduction" jdbcType="VARCHAR" property="introduction"/>
+        <result column="school" jdbcType="VARCHAR" property="school"/>
+        <result column="graduationtime" jdbcType="TIMESTAMP" property="graduationtime"/>
+        <result column="company" jdbcType="VARCHAR" property="company"/>
+        <result column="job" jdbcType="VARCHAR" property="job"/>
+        <result column="tel" jdbcType="VARCHAR" property="tel"/>
+        <result column="email" jdbcType="VARCHAR" property="email"/>
+        <result column="img_url" jdbcType="VARCHAR" property="imgUrl"/>
+        <result column="resume_url" jdbcType="VARCHAR" property="resumeUrl"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Article_Column_List">
+    id, title, user_id, summary, categorys, categorys_name, tags, tags_name,
+    origin, visibility, status, is_top, praise_num, collection_num, create_time, update_time
+   </sql>
+
+    <sql id="User_Column_List">
+    id, loginname, password, nickname, realname, gender, introduction, school, graduationtime,
+    company, job, tel, email, img_url, resume_url, create_time, update_time
+    </sql>
+
+    <select id="getByArticleId" parameterType="java.lang.String" resultMap="ArticleBaseMap">
+        select
+        <include refid="Article_Column_List"/>
+        from enjoy.article
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <select id="getArticleWithContent" parameterType="java.lang.String" resultMap="ArticleBaseMap">
+        select
+              a.id, a.title, a.user_id, a.summary, a.categorys,
+              a.categorys_name, a.tags, a.tags_name, a.origin, a.visibility,
+              a.status, a.is_top, a.praise_num, a.collection_num, a.create_time,
+              a.update_time, b.content
+         from enjoy.article a, enjoy.article_content b
+        where a.id = b.article_id
+          and a.id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <select id="listAll" resultMap="ArticleBaseMap">
+        select
+        <include refid="Article_Column_List"/>
+        from enjoy.article
+        order by create_time
+    </select>
+    <delete id="deleteByArticleId" parameterType="java.lang.String">
+    delete from enjoy.article
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+
+    <insert id="insert" parameterType="com.lyq.enjoy.blog.entity.Article">
+    insert into enjoy.article
+    (id, title, user_id,
+      summary, categorys,
+      categorys_name, tags, tags_name, 
+      origin, visibility, status, 
+      is_top, praise_num, collection_num, 
+      create_time, update_time)
+    values (#{id,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, 
+      #{summary,jdbcType=VARCHAR},  #{categorys, typeHandler=StringToListTypeHandler},
+      #{categorysName,jdbcType=VARCHAR}, #{tags, typeHandler=StringToListTypeHandler}, #{tagsName,jdbcType=VARCHAR},
+      #{origin,jdbcType=VARCHAR}, #{visibility,jdbcType=VARCHAR}, #{status,jdbcType=VARCHAR}, 
+      #{isTop,jdbcType=BIT}, #{praiseNum,jdbcType=INTEGER}, #{collectionNum,jdbcType=INTEGER}, 
+      now(), now())
+  </insert>
+
+    <update id="updateByArticleId" parameterType="com.lyq.enjoy.blog.entity.Article">
+        update article
+        set
+        <if test="title != null and title != ''">
+            title = #{title,jdbcType=VARCHAR},
+        </if>
+        <if test="summary != null and summary != ''">
+            summary = #{summary,jdbcType=VARCHAR},
+        </if>
+        <if test="categorys !== null and categorys != ''">
+            categorys = #{categorys, typeHandler=StringToListTypeHandler},
+        </if>
+        <if test="categorysName != null and categorysName != ''">
+            categorys_name = #{categorysName,jdbcType=VARCHAR},
+        </if>
+        <if test="tags != null and tags != ''">
+            tags = #{tags, typeHandler=StringToListTypeHandler},
+        </if>
+        <if test="tagsName != null and tagsName != ''">
+            tags_name = #{tagsName,jdbcType=VARCHAR},
+        </if>
+        <if test="origin != null and origin != ''">
+            origin = #{origin,jdbcType=VARCHAR},
+        </if>
+        <if test="visibility != null and visibility != ''">
+            visibility = #{visibility,jdbcType=VARCHAR},
+        </if>
+        <if test="status != null and status != ''">
+            status = #{status,jdbcType=VARCHAR},
+        </if>
+        <if test="praiseNum != null and praiseNum gt 0">
+            praise_num = #{praiseNum,jdbcType=INTEGER},
+        </if>
+        <if test="collectionNum != null and collectionNum gt 0">
+            collection_num = #{collectionNum,jdbcType=INTEGER},
+        </if>
+        update_time = now()
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <insert id="saveRelationOfArticleAndCategory" parameterType="java.util.List">
+        insert into enjoy.article_category (article_id, category_id, create_time, update_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.articleid},#{item.categoryid}, now(), now())
+        </foreach>
+    </insert>
+
+    <insert id="saveArticleContent" parameterType="java.util.Map">
+        insert into enjoy.article_content (article_id, content, create_time, update_time)
+        VALUES (#{article_id},#{content}, now(), now())
+    </insert>
+
+    <select id="getArticleLikeUserList" parameterType="java.util.Map" resultMap="UserBaseMap">
+        select b.id, b.loginname, b.password, b.nickname, b.realname,
+        b.gender, b.introduction, b.school, b.graduationtime, b.company,
+        b.job, b.tel, b.email, b.img_url, b.resume_url,
+        b.create_time, b.update_time, a.praise_time operationtime
+        from enjoy.article_user_like a,
+        enjoy.user b
+        where a.user_id = b.id
+        and a.article_id = #{id,jdbcType=VARCHAR}
+        <if test="userId != null and userId != ''">
+            and a.user_id = #{userId}
+        </if>
+    </select>
+
+    <insert id="insertArticleUserLike" parameterType="java.util.Map">
+        insert into enjoy.article_user_like
+              (article_id, user_id, praise_time)
+        values (#{articleId}, #{userId}, #{praiseTime})
+    </insert>
+</mapper>

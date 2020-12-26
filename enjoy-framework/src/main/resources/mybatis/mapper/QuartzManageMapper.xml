@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lyq.framework.quartz.QuartzManageMapper">
+    <sql id="twdAllCol">
+        twdid, twdname, appid, description, workclassname, available, concurrent, parameter, cron, pausebegintime, pauseendtime
+    </sql>
+
+    <select id="lockById" resultType="com.lyq.framework.quartz.JobEntity" timeout="1">
+        select
+        <include refid="twdAllCol"/>
+        from enjoy.timed_work_define where twdid = #{twdId} and appid = #{appId}
+        for update
+    </select>
+
+    <select id="getById" resultType="com.lyq.framework.quartz.JobEntity">
+        select
+        <include refid="twdAllCol"/>
+        from enjoy.timed_work_define where twdid = #{twdId} and appid = #{appId}
+    </select>
+
+    <select id="loadAllAvailableWork" resultType="com.lyq.framework.quartz.JobEntity">
+        select
+        <include refid="twdAllCol"/>
+        from enjoy.timed_work_define
+        where appid = #{appId}
+        and available = '1'
+        and (pausebegintime is null
+        or pausebegintime &gt; now()
+        or pauseendtime &lt; now())
+    </select>
+
+    <insert id="saveTWOLog" parameterType="Map" useGeneratedKeys="true" keyProperty="logId">
+      insert into enjoy.timed_work_log
+              (twdid, starttime, serverip, serverport, status)
+      values (#{twdId}, now(), #{serverIp}, #{serverPort}, '0')
+    </insert>
+
+    <update id="endTWOLog" parameterType="Map">
+        update enjoy.timed_work_log
+           set endtime = now(),
+                status = '1',
+                executecount = #{executecount}
+         where logid = #{logId}
+    </update>
+
+    <insert id="saveLogDetails" parameterType="Map">
+      insert into enjoy.timed_work_log_details
+              (logid, businessid, message)
+      values (#{logId}, #{businessId}, #{message})
+    </insert>
+
+    <insert id="saveExceptionDetails" parameterType="Map">
+      insert into enjoy.timed_work_exception_details
+                (logid, businessid, message)
+      values (#{logId}, #{businessId}, #{message})
+    </insert>
+</mapper>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lyq.enjoy.blog.mapper.CategoryMapper">
+    <resultMap id="BaseResultMap" type="com.lyq.enjoy.blog.entity.Category">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="user_id" jdbcType="VARCHAR" property="userId"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="img_url" jdbcType="VARCHAR" property="imgUrl"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+    id, name, user_id, description, img_url, create_time, update_time
+  </sql>
+
+    <select id="getByCategoryId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from enjoy.category
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <select id="getByCategoryIds" parameterType="java.util.List" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from enjoy.category
+        where id in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+    
+    <insert id="save" parameterType="com.lyq.enjoy.blog.entity.Category">
+        insert into enjoy.category
+        (id, name, user_id, description, img_url,
+         create_time, update_time)
+        values
+        (#{id}, #{name}, #{userId}, #{description}, #{imgUrl},
+         now(), now())
+    </insert>
+
+    <select id="getAvailableCategorys" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from enjoy.category
+        where user_id = #{userid}
+    </select>
+
+    <select id="getAvailableTags" parameterType="java.lang.String" resultType="com.lyq.enjoy.blog.entity.Tag">
+        select
+         id, name, user_id, create_time, update_time
+        from enjoy.tag
+        where user_id is null
+           or user_id = #{userid}
+    </select>
+
+    <select id="getByTagId" parameterType="java.lang.String" resultType="com.lyq.enjoy.blog.entity.Tag">
+       select
+         id, name, user_id, create_time, update_time
+        from enjoy.tag
+        where id = #{id}
+
+    </select>
+
+    <insert id="saveTag" parameterType="com.lyq.enjoy.blog.entity.Tag">
+        insert into enjoy.tag
+        (id, name, user_id, create_time, update_time)
+        values
+        (#{id}, #{name}, #{userId}, now(), now())
+    </insert>
+</mapper>
