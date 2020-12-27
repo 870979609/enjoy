@@ -6,10 +6,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -18,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class RedisUtil {
     private static Logger logger = LoggerFactory.getLogger(RedisUtil.class);
+    private static final String releaseKeyScript = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+    private static final Long RELEASE_LOCK_RESULT_SUCCESS = 1l;
 
     @Resource(name = "redisTemplate")
     RedisTemplate<String, Object> redisTemplate;
@@ -307,8 +311,7 @@ public class RedisUtil {
     }
 
     /**
-     * @Description 
-     * 随机返回并删除名称为key的set中一个元素
+     * @Description 随机返回并删除名称为key的set中一个元素
      * @Author lixinyu
      * @Date 2020/11/15 16:36
      **/
@@ -323,7 +326,7 @@ public class RedisUtil {
     }
 
     /*
-     * @Description 
+     * @Description
      * 返回名称为key的hash中所有键
      * @Author lixinyu
      * @Date 2020/11/15 16:42
@@ -352,5 +355,41 @@ public class RedisUtil {
             e.printStackTrace();
             return null;
         }
+    }
+
+    /*
+     * @Description
+     * 不存在则Set， 存在则不设置  单位秒
+     * @Author lixinyu
+     * @Date 2020/12/27 20:38
+     **/
+    public boolean tryDistributedLock(String lockKey, String lockValue, long time) {
+
+        try {
+            Boolean result = redisTemplate.opsForValue().setIfAbsent(lockKey, lockValue, time, TimeUnit.SECONDS);
+            if (result != null) {
+                return result.booleanValue();
+            }
+        } catch (Throwable e) {
+            logger.error("setNXEX error", e);
+        }
+
+        return false;
+    }
+
+    /*
+     * @Description 
+     * 使用lua脚本释放分布式锁
+     * @Author lixinyu
+     * @Date 2020/12/27 21:42
+     **/
+    public boolean releaseDistributedLock(String lockKey, String lockValue) {
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<Long>();
+        redisScript.setScriptText(releaseKeyScript);
+        redisScript.setResultType(Long.class);
+
+        Long result = redisTemplate.execute(redisScript, Collections.singletonList(lockKey), lockValue);
+
+        return RELEASE_LOCK_RESULT_SUCCESS.equals(result);
     }
 }
