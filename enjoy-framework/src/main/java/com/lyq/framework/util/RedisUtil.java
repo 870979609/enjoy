@@ -4,226 +4,110 @@ package com.lyq.framework.util;
 import com.lyq.framework.spring.SpringBeanUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Component
 public class RedisUtil {
     private static Logger logger = LoggerFactory.getLogger(RedisUtil.class);
-    private static final String releaseKeyScript = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
     private static final Long RELEASE_LOCK_RESULT_SUCCESS = 1l;
+    private UUID id;
 
     @Resource(name = "redisTemplate")
     RedisTemplate<String, Object> redisTemplate;
 
     private RedisUtil() {
+        setId(UUID.randomUUID());
     }
 
     public static RedisUtil getInstance() {
-        return (RedisUtil) SpringBeanUtil.getBean(RedisUtil.class);
+        return SpringBeanUtil.getBean(RedisUtil.class);
     }
 
-    public boolean set(String key, Object value) {
-        try {
-            this.redisTemplate.opsForValue().set(key, value, 1L, TimeUnit.DAYS);
-        } catch (Exception e) {
-            logger.error("向Redis中存放数据出错：" + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-        return true;
+    public void setId(UUID uuid) {
+        this.id = uuid;
     }
 
-    public boolean set(String key, Object value, long time) {
-        try {
-            if (time > 0L) {
-                this.redisTemplate.opsForValue()
-                        .set(key, value, time, TimeUnit.SECONDS);
-            } else
-                set(key, value);
-        } catch (Exception e) {
-            logger.error("向Redis中存放数据出错：" + e.getMessage());
-            e.printStackTrace();
-            throw e;
+    public UUID getId() {
+        return this.id;
+    }
+
+    public boolean exists(String key) {
+        return this.redisTemplate.hasKey(key);
+    }
+
+    public void set(String key, Object value) {
+        this.redisTemplate.opsForValue().set(key, value, 1L, TimeUnit.DAYS);
+    }
+
+    public void set(String key, Object value, long time) {
+        if (time > 0L) {
+            this.redisTemplate.opsForValue().set(key, value, time, TimeUnit.SECONDS);
+        } else {
+            set(key, value);
         }
-        return true;
     }
 
     public Object get(String key) {
-        Object value = null;
-        try {
-            value = this.redisTemplate.opsForValue().get(key);
-        } catch (Exception e) {
-            logger.error("从Redis中获取key【" + key + "】出错：" + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
-        return value;
+        return this.redisTemplate.opsForValue().get(key);
     }
 
-    public void del(String[] key) {
-        try {
-            if ((key != null) && (key.length > 0))
-                if (key.length == 1)
-                    this.redisTemplate.delete(key[0]);
-                else
-                    this.redisTemplate.delete(CollectionUtils.arrayToList(key));
-        } catch (Exception e) {
-            logger.error("从Redis中删除数据出错：" + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
-    public Map<Object, Object> hmget(String key) {
-        Map hmap = new HashMap();
-        try {
-            hmap = this.redisTemplate.opsForHash().entries(key);
-        } catch (Exception e) {
-            logger.error("从Redis中获取HashMap数据出错：" + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
-        return hmap;
-    }
-
-    public boolean hmset(String key, Map<String, Object> map) {
-        try {
-            this.redisTemplate.opsForHash().putAll(key, map);
-        } catch (Exception e) {
-            logger.error("从Redis中放置HashMap数据出错：" + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
-        return true;
-    }
-
-    public boolean hset(String key, String item, Object value) {
-        try {
-            this.redisTemplate.opsForHash().put(key, item, value);
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean remove(String key, Object[] values) {
-        try {
-            this.redisTemplate.opsForSet().remove(key, values);
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean hasKey(String key) {
-        try {
-            return this.redisTemplate.hasKey(key).booleanValue();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public void delete(String key) {
+    public void del(String key) {
         this.redisTemplate.delete(key);
     }
 
+    public void del(String[] key) {
+        if ((key != null) && (key.length > 0)) {
+            if (key.length == 1)
+                this.redisTemplate.delete(key[0]);
+            else
+                this.redisTemplate.delete(CollectionUtils.arrayToList(key));
+        }
+    }
+
+    public void del(List key) {
+        this.redisTemplate.delete(key);
+    }
+
+    public Map<Object, Object> hmget(String key) {
+        return this.redisTemplate.opsForHash().entries(key);
+    }
+
+    public void hmset(String key, Map<String, Object> map) {
+        this.redisTemplate.opsForHash().putAll(key, map);
+    }
+
+    public void hset(String key, String item, Object value) {
+        this.redisTemplate.opsForHash().put(key, item, value);
+    }
+
+    public Long remove(String key, Object[] values) {
+        return this.redisTemplate.opsForSet().remove(key, values);
+    }
+
+    public boolean hasKey(String key) {
+        return this.redisTemplate.hasKey(key).booleanValue();
+    }
+
     public boolean expire(String key, long time) {
-        try {
-            if (time > 0L) {
-                this.redisTemplate.expire(key, time, TimeUnit.SECONDS);
-            }
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
+        return this.redisTemplate.expire(key, time, TimeUnit.SECONDS);
     }
 
-    public long incr(String key, long delta) {
-        if (delta < 0L) {
-            throw new RuntimeException("递增因子必须大于0");
-        }
-
-        long ddd = this.redisTemplate.opsForValue().increment(key, delta).longValue();
-
-        return ddd;
-    }
-
-    public long incr(String key, long delta, long timeout) {
-        if (delta < 0L) {
-            throw new RuntimeException("递增因子必须大于0");
-        }
-
-        long ddd = this.redisTemplate.opsForValue().increment(key, delta).longValue();
-
-        if (timeout > 0L) {
-            this.redisTemplate.expire(key, timeout, TimeUnit.SECONDS);
-        }
-
-        return ddd;
-    }
-
-    public long decr(String key, long delta, long timeout) {
-        if (delta < 0L) {
-            throw new RuntimeException("递减因子必须大于0");
-        }
-        long ddd = this.redisTemplate.opsForValue().increment(key, -delta).longValue();
-
-        if (timeout > 0L) {
-            this.redisTemplate.expire(key, timeout, TimeUnit.SECONDS);
-        }
-        return ddd;
-    }
-
-    public long decr(String key, long delta) {
-        if (delta < 0L) {
-            throw new RuntimeException("递减因子必须大于0");
-        }
-        return this.redisTemplate.opsForValue().increment(key, -delta).longValue();
+    public Long incr(String key, long delta) {
+        return this.redisTemplate.opsForValue().increment(key, delta);
     }
 
     public Object hget(String key, String item) {
         return this.redisTemplate.opsForHash().get(key, item);
-    }
-
-    public boolean hmset(String key, Map<String, Object> map, long time) {
-        try {
-            this.redisTemplate.opsForHash().putAll(key, map);
-            if (time > 0L) {
-                expire(key, time);
-            }
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean hset(String key, String item, Object value, long time) {
-        try {
-            this.redisTemplate.opsForHash().put(key, item, value);
-            if (time > 0L) {
-                expire(key, time);
-            }
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
     }
 
     public void hdel(String key, Object... item) {
@@ -234,162 +118,49 @@ public class RedisUtil {
         return this.redisTemplate.opsForHash().hasKey(key, item).booleanValue();
     }
 
-    public double hincr(String key, String item, double by) {
-        return this.redisTemplate.opsForHash().increment(key, item, by).doubleValue();
-    }
-
-    public double hdecr(String key, String item, double by) {
-        return this.redisTemplate.opsForHash().increment(key, item, -by).doubleValue();
+    public Long hincr(String key, String item, long by) {
+        return this.redisTemplate.opsForHash().increment(key, item, by);
     }
 
     //============================set=============================
-
-    /**
-     * 根据key获取Set中的所有值
-     *
-     * @param key 键
-     * @return
-     */
-    public Set<Object> sget(String key) {
-        try {
-            return redisTemplate.opsForSet().members(key);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+    public boolean sIsMember(String key, Object value) {
+        return redisTemplate.opsForSet().isMember(key, value);
     }
 
-    /**
-     * 根据value从一个set中查询,是否存在
-     *
-     * @param key   键
-     * @param value 值
-     * @return true 存在 false不存在
-     */
-    public boolean sHasKey(String key, Object value) {
-        try {
-            return redisTemplate.opsForSet().isMember(key, value);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    public Long sadd(String key, Object... values) {
+        return redisTemplate.opsForSet().add(key, values);
+
     }
 
-    /**
-     * 将数据放入set缓存
-     *
-     * @param key    键
-     * @param values 值 可以是多个
-     * @return 成功个数
-     */
-    public long sset(String key, Object... values) {
-        try {
-            return redisTemplate.opsForSet().add(key, values);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
+    public Set<Object> smembers(String key) {
+        return redisTemplate.opsForSet().members(key);
     }
 
-    /**
-     * 将set数据放入缓存
-     *
-     * @param key    键
-     * @param time   时间(秒)
-     * @param values 值 可以是多个
-     * @return 成功个数
-     */
-    public long sset(String key, Object[] values, long time) {
-        try {
-            Long count = redisTemplate.opsForSet().add(key, values);
-            if (time > 0) expire(key, time);
-            return count;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
+    public Long sremove(String key, Object value) {
+        return redisTemplate.opsForSet().remove(key, value);
     }
 
-    /**
-     * @Description 随机返回并删除名称为key的set中一个元素
-     * @Author lixinyu
-     * @Date 2020/11/15 16:36
-     **/
     public Object spop(String key) {
-        try {
-            Object value = redisTemplate.opsForSet().pop(key);
-            return value;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        return redisTemplate.opsForSet().pop(key);
     }
 
-    /*
-     * @Description
-     * 返回名称为key的hash中所有键
-     * @Author lixinyu
-     * @Date 2020/11/15 16:42
-     **/
-    public Map hEntrys(String key) {
-        try {
-            Map entries = redisTemplate.opsForHash().entries(key);
-            return entries;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+    public boolean setIfAbsent(String lockKey, String lockValue, long time, TimeUnit unit) {
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(lockKey, lockValue, time, unit);
+        if (result != null) {
+            return result.booleanValue();
         }
-    }
-
-    /*
-     * @Description
-     * 返回名称为key的hash中所有键
-     * @Author lixinyu
-     * @Date 2020/11/15 16:42
-     **/
-    public Set<Object> hKeys(String key) {
-        try {
-            Set<Object> keys = redisTemplate.opsForHash().keys(key);
-            return keys;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /*
-     * @Description
-     * 不存在则Set， 存在则不设置  单位秒
-     * @Author lixinyu
-     * @Date 2020/12/27 20:38
-     **/
-    public boolean tryDistributedLock(String lockKey, String lockValue, long time) {
-
-        try {
-            Boolean result = redisTemplate.opsForValue().setIfAbsent(lockKey, lockValue, time, TimeUnit.SECONDS);
-            if (result != null) {
-                return result.booleanValue();
-            }
-        } catch (Throwable e) {
-            logger.error("setNXEX error", e);
-        }
-
         return false;
     }
 
-    /*
-     * @Description 
-     * 使用lua脚本释放分布式锁
-     * @Author lixinyu
-     * @Date 2020/12/27 21:42
-     **/
-    public boolean releaseDistributedLock(String lockKey, String lockValue) {
-        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<Long>();
-        redisScript.setScriptText(releaseKeyScript);
-        redisScript.setResultType(Long.class);
+    public boolean setIfAbsent(String lockKey, String lockValue) {
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(lockKey, lockValue);
+        if (result != null) {
+            return result.booleanValue();
+        }
+        return false;
+    }
 
-        Long result = redisTemplate.execute(redisScript, Collections.singletonList(lockKey), lockValue);
-
-        return RELEASE_LOCK_RESULT_SUCCESS.equals(result);
+    public <T> T execute(RedisScript<T> script, List<String> keys, Object args[]) {
+        return this.redisTemplate.execute(script, keys, args);
     }
 }
